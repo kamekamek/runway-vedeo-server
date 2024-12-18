@@ -9,6 +9,8 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios from "axios";
+import fs from "fs";
+import path from "path";
 
 const RUNWAY_API_KEY = process.env.RUNWAY_API_KEY;
 if (!RUNWAY_API_KEY) {
@@ -18,7 +20,7 @@ if (!RUNWAY_API_KEY) {
 const server = new Server(
   {
     name: "runway-video-server",
-    version: "0.1.4",
+    version: "0.1.5",
   },
   {
     capabilities: {
@@ -38,7 +40,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             image: {
               type: "string",
-              description: "URL of the input image or Base64 encoded image data",
+              description: "URL of the input image, Base64 encoded image data, or path to local image file",
             },
             promptText: {
               type: "string",
@@ -64,10 +66,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     let promptImage = image;
-    if (!image.startsWith("http://") && !image.startsWith("https://")) {
-      // Assume it's a Base64 encoded image
-      const mimeType = image.split(';')[0].split(':')[1];
-      promptImage = `data:${mimeType};base64,${image}`;
+
+    if (image.startsWith("http://") || image.startsWith("https://")) {
+      // Image URL, use as is
+    } else if (image.startsWith("data:")) {
+      // Base64 encoded image data, use as is
+    } else {
+      // Assume it's a local file path
+      const imageBuffer = fs.readFileSync(image);
+      const base64Image = imageBuffer.toString("base64");
+      const mimeType = path.extname(image).slice(1);
+      promptImage = `data:image/${mimeType};base64,${base64Image}`;
     }
 
     // Start the video generation task
