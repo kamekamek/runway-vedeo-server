@@ -23,7 +23,7 @@ const client = new RunwayML();
 const server = new Server(
   {
     name: "runway-video-server",
-    version: "0.1.7",
+    version: "0.1.8",
   },
   {
     capabilities: {
@@ -67,23 +67,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     promptText?: string;
   };
 
+  console.log("Received image data:", image.substring(0, 100) + "...");
+
   try {
     let promptImage = image;
 
     if (image.startsWith("http://") || image.startsWith("https://")) {
-      // Image URL, use as is
       console.log("Using image URL:", image);
     } else if (image.startsWith("data:")) {
-      // Base64 encoded image data, use as is
       console.log("Using Base64 encoded image data");
     } else {
-      // Assume it's a local file path
-      const absolutePath = path.isAbsolute(image) ? image : path.resolve(process.cwd(), image);
-      console.log("Reading local file:", absolutePath);
-      const imageBuffer = fs.readFileSync(absolutePath);
-      const base64Image = imageBuffer.toString("base64");
-      const mimeType = mime.lookup(absolutePath) || 'application/octet-stream';
-      promptImage = `data:${mimeType};base64,${base64Image}`;
+      console.log("Attempting to read local file");
+      let absolutePath;
+      try {
+        absolutePath = path.isAbsolute(image) ? image : path.resolve(process.cwd(), image);
+        console.log("Resolved absolute path:", absolutePath);
+        const imageBuffer = fs.readFileSync(absolutePath);
+        const base64Image = imageBuffer.toString("base64");
+        const mimeType = mime.lookup(absolutePath) || 'application/octet-stream';
+        promptImage = `data:${mimeType};base64,${base64Image}`;
+        console.log("Successfully read and encoded local file");
+      } catch (readError: unknown) {
+        console.error("Error reading local file:", readError);
+        throw new Error(`Failed to read local file: ${readError instanceof Error ? readError.message : String(readError)}`);
+      }
     }
 
     console.log("Creating image-to-video task");
@@ -96,10 +103,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const taskId = imageToVideo.id;
     console.log("Task created with ID:", taskId);
 
-    // Poll the task until it's complete
     let task;
     do {
-      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait for 10 seconds before polling
+      await new Promise(resolve => setTimeout(resolve, 10000));
       console.log("Polling task status");
       task = await client.tasks.retrieve(taskId);
       console.log("Task status:", task.status);
@@ -125,7 +131,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     console.error("Error generating video:", error);
     throw new McpError(
       ErrorCode.InternalError,
-      "Failed to generate video: " + (error as Error).message
+      "Failed to generate video: " + (error instanceof Error ? error.message : String(error))
     );
   }
 });
