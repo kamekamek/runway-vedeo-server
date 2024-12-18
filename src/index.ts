@@ -9,21 +9,16 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios from "axios";
-import dotenv from "dotenv";
-import fs from "fs";
-import path from "path";
-
-dotenv.config();
 
 const RUNWAY_API_KEY = process.env.RUNWAY_API_KEY;
 if (!RUNWAY_API_KEY) {
-  throw new Error("RUNWAY_API_KEY environment variable is required");
+  throw new Error("RUNWAY_API_KEY is not set in the @claude_desktop_config.json file");
 }
 
 const server = new Server(
   {
     name: "runway-video-server",
-    version: "0.1.0",
+    version: "0.1.2",
   },
   {
     capabilities: {

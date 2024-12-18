@@ -14,40 +14,36 @@
 
 ## 🛠 セットアップ
 
-1. このリポジトリをクローンします：
+1. npmパッケージをインストールします：
 
 ```bash
-git clone https://github.com/yourusername/runway-video-server.git
-cd runway-video-server
+npm install @kamechan/runway-video-server
 ```
 
-2. 必要な依存関係をインストールします：
+2. Claude.appの設定ファイル（@claude_desktop_config.json）を開き、以下のようにRunway Video MCPサーバーの設定を追加します：
 
-```bash
-npm install
+```json
+{
+  "mcpServers": {
+    "runway-video-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@kamechan/runway-video-server"
+      ],
+      "env": {
+        "RUNWAY_API_KEY": "YOUR_RUNWAY_API_KEY_HERE"
+      }
+    }
+  }
+}
 ```
 
-3. `.env`ファイルを作成し、RunwayAPIキーを設定します：
-
-```
-RUNWAY_API_KEY=your_runway_api_key_here
-```
-
-4. サーバーをビルドします：
-
-```bash
-npm run build
-```
-
-5. サーバーを起動します：
-
-```bash
-npm start
-```
+3. `YOUR_RUNWAY_API_KEY_HERE`を実際のRunwayAPIキーに置き換えてください。
 
 ## 💻 使用方法
 
-このMCPサーバーは、`generate_video`というツールを提供します。このツールは以下のパラメータを受け取ります：
+Claude.appでRunway Video MCPサーバーが設定されると、`generate_video`ツールが利用可能になります。このツールは以下のパラメータを受け取ります：
 
 - `imageUrl` (必須): 入力画像のURL
 - `promptText` (オプション): 動画生成のためのプロンプトテキスト
@@ -59,6 +55,12 @@ npm start
   "imageUrl": "https://example.com/input-image.jpg",
   "promptText": "A serene landscape transforming through seasons"
 }
+```
+
+Claude.appで以下のようにツールを呼び出すことができます：
+
+```
+画像から動画を生成してください。画像URL: https://example.com/input-image.jpg、プロンプト: 穏やかな風景が四季を通じて変化する
 ```
 
 ## 🤝 貢献
