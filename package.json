@@ -1,6 +1,6 @@
 {
   "name": "@kamechan/runway-video-server",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A Model Context Protocol server for generating videos from images using RunwayAPI",
   "type": "module",
   "bin": {
