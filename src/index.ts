@@ -8,19 +8,22 @@ import {
   ErrorCode,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
-import axios from "axios";
+import RunwayML from '@runwayml/sdk';
 import fs from "fs";
 import path from "path";
+import mime from 'mime-types';
 
 const RUNWAY_API_KEY = process.env.RUNWAY_API_KEY;
 if (!RUNWAY_API_KEY) {
   throw new Error("RUNWAY_API_KEY is not set in the @claude_desktop_config.json file");
 }
 
+const client = new RunwayML();
+
 const server = new Server(
   {
     name: "runway-video-server",
-    version: "0.1.5",
+    version: "0.1.7",
   },
   {
     capabilities: {
@@ -69,51 +72,41 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (image.startsWith("http://") || image.startsWith("https://")) {
       // Image URL, use as is
+      console.log("Using image URL:", image);
     } else if (image.startsWith("data:")) {
       // Base64 encoded image data, use as is
+      console.log("Using Base64 encoded image data");
     } else {
       // Assume it's a local file path
-      const imageBuffer = fs.readFileSync(image);
+      const absolutePath = path.isAbsolute(image) ? image : path.resolve(process.cwd(), image);
+      console.log("Reading local file:", absolutePath);
+      const imageBuffer = fs.readFileSync(absolutePath);
       const base64Image = imageBuffer.toString("base64");
-      const mimeType = path.extname(image).slice(1);
-      promptImage = `data:image/${mimeType};base64,${base64Image}`;
+      const mimeType = mime.lookup(absolutePath) || 'application/octet-stream';
+      promptImage = `data:${mimeType};base64,${base64Image}`;
     }
 
-    // Start the video generation task
-    const response = await axios.post(
-      "https://api.runwayml.com/v1/image_to_video",
-      {
-        promptImage,
-        promptText: promptText || "",
-        model: "gen3a_turbo",
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${RUNWAY_API_KEY}`,
-        },
-      }
-    );
+    console.log("Creating image-to-video task");
+    const imageToVideo = await client.imageToVideo.create({
+      model: 'gen3a_turbo',
+      promptImage: promptImage,
+      promptText: promptText || "",
+    });
 
-    const taskId = response.data.id;
+    const taskId = imageToVideo.id;
+    console.log("Task created with ID:", taskId);
 
     // Poll the task until it's complete
     let task;
     do {
-      await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait for 10 seconds before polling
-      const taskResponse = await axios.get(
-        `https://api.runwayml.com/v1/tasks/${taskId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${RUNWAY_API_KEY}`,
-          },
-        }
-      );
-      task = taskResponse.data;
-    } while (!["SUCCEEDED", "FAILED"].includes(task.status));
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait for 10 seconds before polling
+      console.log("Polling task status");
+      task = await client.tasks.retrieve(taskId);
+      console.log("Task status:", task.status);
+    } while (!['SUCCEEDED', 'FAILED'].includes(task.status));
 
-    if (task.status === "FAILED") {
-      throw new Error("Video generation failed");
+    if (task.status === 'FAILED') {
+      throw new Error(`Video generation failed: ${task.error || "Unknown error"}`);
     }
 
     return {
