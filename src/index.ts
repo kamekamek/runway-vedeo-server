@@ -18,7 +18,7 @@ if (!RUNWAY_API_KEY) {
 const server = new Server(
   {
     name: "runway-video-server",
-    version: "0.1.2",
+    version: "0.1.4",
   },
   {
     capabilities: {
@@ -36,16 +36,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            imageUrl: {
+            image: {
               type: "string",
-              description: "URL of the input image",
+              description: "URL of the input image or Base64 encoded image data",
             },
             promptText: {
               type: "string",
               description: "Optional prompt text for video generation",
             },
           },
-          required: ["imageUrl"],
+          required: ["image"],
         },
       },
     ],
@@ -57,17 +57,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new McpError(ErrorCode.MethodNotFound, "Unknown tool");
   }
 
-  const { imageUrl, promptText } = request.params.arguments as {
-    imageUrl: string;
+  const { image, promptText } = request.params.arguments as {
+    image: string;
     promptText?: string;
   };
 
   try {
+    let promptImage = image;
+    if (!image.startsWith("http://") && !image.startsWith("https://")) {
+      // Assume it's a Base64 encoded image
+      const mimeType = image.split(';')[0].split(':')[1];
+      promptImage = `data:${mimeType};base64,${image}`;
+    }
+
     // Start the video generation task
     const response = await axios.post(
       "https://api.runwayml.com/v1/image_to_video",
       {
-        promptImage: imageUrl,
+        promptImage,
         promptText: promptText || "",
         model: "gen3a_turbo",
       },

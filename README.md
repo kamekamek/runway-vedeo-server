@@ -4,11 +4,11 @@
 
 ## 📋 概要
 
-このMCPサーバーは、RunwayAPIを利用して画像から動画を生成する機能を提供します。ユーザーは画像URLとオプションのプロンプトテキストを入力として、動画を生成することができます。
+このMCPサーバーは、RunwayAPIを利用して画像から動画を生成する機能を提供します。ユーザーは画像URL、ローカルにアップロードされた画像、またはBase64エンコードされた画像データと、オプションのプロンプトテキストを入力として、動画を生成することができます。
 
 ## 🚀 機能
 
-- 画像URLから動画を生成
+- 画像URL、ローカルにアップロードされた画像、またはBase64エンコードされた画像データから動画を生成
 - オプションのプロンプトテキストによる動画生成のカスタマイズ
 - MCPツールとしての統合が容易
 
@@ -45,22 +45,32 @@ npm install @kamechan/runway-video-server
 
 Claude.appでRunway Video MCPサーバーが設定されると、`generate_video`ツールが利用可能になります。このツールは以下のパラメータを受け取ります：
 
-- `imageUrl` (必須): 入力画像のURL
+- `image` (必須): 入力画像のURL、ローカルにアップロードされた画像、またはBase64エンコードされた画像データ
 - `promptText` (オプション): 動画生成のためのプロンプトテキスト
 
 例：
 
-```json
-{
-  "imageUrl": "https://example.com/input-image.jpg",
-  "promptText": "A serene landscape transforming through seasons"
-}
-```
-
-Claude.appで以下のようにツールを呼び出すことができます：
+1. 画像URLを使用する場合：
 
 ```
 画像から動画を生成してください。画像URL: https://example.com/input-image.jpg、プロンプト: 穏やかな風景が四季を通じて変化する
+```
+
+2. ローカルにアップロードされた画像を使用する場合：
+
+画像をClaudeアプリにドラッグ＆ドロップしてアップロードし、以下のように指示します：
+
+```
+この画像から動画を生成してください。プロンプト: 穏やかな風景が四季を通じて変化する
+```
+
+3. Base64エンコードされた画像データを使用する場合（通常はプログラムから使用）：
+
+```json
+{
+  "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAA...",
+  "promptText": "A serene landscape transforming through seasons"
+}
 ```
 
 ## 🤝 貢献
