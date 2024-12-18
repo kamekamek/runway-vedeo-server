@@ -106,17 +106,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     } while (!['SUCCEEDED', 'FAILED'].includes(task.status));
 
     if (task.status === 'FAILED') {
-      throw new Error(`Video generation failed: ${task.error || "Unknown error"}`);
+      throw new Error(`Video generation failed: Unknown error`);
     }
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Video generated successfully. Output URL: ${task.output.videoUrl}`,
-        },
-      ],
-    };
+    if (task.status === 'SUCCEEDED' && task.output && typeof task.output === 'object' && 'videoUrl' in task.output) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Video generated successfully. Output URL: ${task.output.videoUrl}`,
+          },
+        ],
+      };
+    } else {
+      throw new Error("Video generation succeeded but output is in unexpected format");
+    }
   } catch (error) {
     console.error("Error generating video:", error);
     throw new McpError(
